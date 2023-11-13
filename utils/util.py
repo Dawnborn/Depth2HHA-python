@@ -7,6 +7,9 @@ from scipy import signal
 helper function
 '''
 def filterItChopOff(f, r, sp):
+    """
+    局部滤波操作，考虑了超像素及其边界作为输入
+    """
     f[np.isnan(f)] = 0
     H, W, d = f.shape
     B = np.ones([2 * r + 1, 2 * r + 1])     # 2r+1 * 2r+1 neighbourhood
@@ -108,7 +111,7 @@ def getYDirHelper(N, y0, thresh, num_iter):
     nn = nn[:,idx]
 
     # Set it up as a optimization problem
-    yDir = y0;
+    yDir = y0
     for i in range(num_iter):
         sim0 = np.dot(yDir.T, nn)
         indF = abs(sim0) > np.cos(thresh)       # calculate 'floor' set.    |sin(theta)| < sin(thresh) ==> |cos(theta)| > cos(thresh)
@@ -150,7 +153,7 @@ def getRMatrix(yi, yf):
 
     if (abs(phi) > 0.1):
         phi = phi * (np.pi / 180)
-
+        ax = ax.flatten()
         s_hat = np.array([[0, -ax[2], ax[1]],
                           [ax[2], 0, -ax[0]],
                           [-ax[1], ax[0], 0]])

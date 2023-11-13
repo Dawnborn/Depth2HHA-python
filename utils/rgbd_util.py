@@ -9,11 +9,24 @@ missingMask: a mask
 C: camera matrix
 '''
 def processDepthImage(z, missingMask, C):
+    """
+    input:
+        C: camera intrinsics matrix
+        missingMask: missingMask = (RD == 0)
+        z: z-axis depth, unit: cm
+    return:
+        pc: h*w*3, point cloud from depth and camera intrinsics, unit: cm
+        N: h*w*3, normals
+        yDir: 1*3, gravity direction
+        h: h*w, unit: cm 
+        pcRot: h*w*3, unit: cm
+        NRot: h*w*3
+    """
     yDirParam_angleThresh = np.array([45, 15]) # threshold to estimate the direction of the gravity
     yDirParam_iter = np.array([5, 5])
     yDirParam_y0 = np.array([0, 1, 0])
 
-    normalParam_patchSize = np.array([3, 10])
+    normalParam_patchSize = np.array([3, 10]) # 估算法线的半径
 
     X, Y, Z = getPointCloudFromZ(z, C, 1)
 
@@ -28,12 +41,13 @@ def processDepthImage(z, missingMask, C):
     pc[:,:,1] = Y
     pc[:,:,2] = Z
 
+    # 估算法线
     N1, b1 = computeNormalsSquareSupport(z/100, missingMask, normalParam_patchSize[0],
-    1, C, np.ones(z.shape))
+    1, C, np.ones(z.shape)) # 小半径
     N2, b2 = computeNormalsSquareSupport(z/100, missingMask, normalParam_patchSize[1],
-    1, C, np.ones(z.shape))
+    1, C, np.ones(z.shape)) # 大半径
 
-    N = N1
+    N = N1 # 使用小半径估计出来的版本
 
     # Compute the direction of gravity
     yDir = getYDir(N2, yDirParam_angleThresh, yDirParam_iter, yDirParam_y0)
@@ -59,6 +73,9 @@ C: camera matrix
 s: is the factor by which Z has been upsampled
 '''
 def getPointCloudFromZ(Z, C, s=1):
+    """
+    以图片为基准, 点云方向为x向右, y向下, z向前
+    """
     h, w= Z.shape
     xx, yy = np.meshgrid(np.array(range(w))+1, np.array(range(h))+1)
     # color camera parameters
@@ -84,6 +101,20 @@ Input:
                     not be straddled
 '''
 def computeNormalsSquareSupport(depthImage, missingMask, R, sc, cameraMatrix, superpixels):
+    """
+    从深度图中计算表面法线，并指向画面外
+    input
+        depth image: in meter, h*w
+        missingMask: depth==0
+        R: 滤波半径
+        sc: scale, default 1
+        cameraMatrix: 相机内参矩阵
+        superpixels: 滤波中心
+    output:
+        N,
+        b,
+
+    """
     depthImage = depthImage*100     # convert to centi metres
     X, Y, Z = getPointCloudFromZ(depthImage, cameraMatrix, sc)
     Xf = X

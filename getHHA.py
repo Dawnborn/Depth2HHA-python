@@ -1,4 +1,5 @@
 # --*-- coding:utf-8 --*--
+#%%
 import math
 import cv2
 import os
@@ -16,14 +17,21 @@ def getImage(root='demo'):
     return D, RD
 
 
-'''
-C: Camera matrix
-D: Depth image, the unit of each element in it is "meter"
-RD: Raw depth image, the unit of each element in it is "meter"
-'''
 def getHHA(C, D, RD):
-    missingMask = (RD == 0);
-    pc, N, yDir, h, pcRot, NRot = processDepthImage(D * 100, missingMask, C);
+    """
+    Input:
+        C: Camera matrix, np.array([[fx_rgb, 0, cx_rgb], [0, fy_rgb, cy_rgb], [0, 0, 1]])
+        D: Depth image, numpy array of shape (H,W), the unit of each element in it is "meter"
+        RD: Raw depth image, the unit of each element in it is "meter"
+    Return:
+        I[:,:,2]: 水平视差
+        
+        I[:,:,1]: 像素相较于地面高度, unit: centimeter
+
+        I[:,:,0]: 像素表面法线与重力方向夹角, degree表示
+    """
+    missingMask = (RD == 0)
+    pc, N, yDir, h, pcRot, NRot = processDepthImage(D * 100, missingMask, C)
 
     tmp = np.multiply(N, yDir)
     acosValue = np.minimum(1,np.maximum(-1,np.sum(tmp, axis=2)))
@@ -59,12 +67,14 @@ def getHHA(C, D, RD):
     HHA = I.astype(np.uint8)
     return HHA
 
+#%%
 if __name__ == "__main__":
-    D, RD = getImage()
+    D, RD = getImage() # D: depth, RD: raw_depth
     camera_matrix = getCameraParam('color')
     print('max gray value: ', np.max(D))        # make sure that the image is in 'meter'
-    hha = getHHA(camera_matrix, D, RD)
-    hha_complete = getHHA(camera_matrix, D, D)
+    #%%
+    hha = getHHA(camera_matrix, D, RD) # 参考raw_depth作为mask，只输出有深度值的部分
+    hha_complete = getHHA(camera_matrix, D, D) # 无mask，整个图片均输出
     cv2.imwrite('demo/hha.png', hha)
     cv2.imwrite('demo/hha_complete.png', hha_complete)
     

@@ -91,3 +91,10 @@ If you find this project useful in your research, please consider cite:
 
 - Parallel processing
 
+## Env
+
+```
+conda create -n haa38 python=3.8
+pip install opencv-python
+pip install scipy
+```
